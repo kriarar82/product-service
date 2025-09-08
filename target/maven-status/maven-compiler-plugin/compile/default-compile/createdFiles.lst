@@ -1,0 +1,6 @@
+com/example/productservice/model/Product.class
+com/example/productservice/controller/ProductController.class
+com/example/productservice/config/AzureSearchConfig$AzureSearchPropertiesPresent.class
+com/example/productservice/ProductServiceApplication.class
+com/example/productservice/config/AzureSearchConfig.class
+com/example/productservice/service/ProductService.class
