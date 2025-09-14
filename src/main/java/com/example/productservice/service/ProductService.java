@@ -5,19 +5,31 @@ import com.azure.search.documents.models.SearchOptions;
 import com.azure.search.documents.models.SearchResult;
 import com.example.productservice.model.Product;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class ProductService {
     
     @Autowired(required = false)
     private SearchClient searchClient;
+    
+    @Autowired
+    private DocumentMappingService documentMappingService;
+    
+    @Value("${azure.search.endpoint:}")
+    private String searchEndpoint;
+    
+    @Value("${azure.search.api-key:}")
+    private String searchApiKey;
+    
+    @Value("${azure.search.index-name:products}")
+    private String indexName;
     
     /**
      * Retrieves a product by its ID
@@ -49,17 +61,14 @@ public class ProductService {
     private Product searchProductById(String productId) {
         try {
             SearchOptions searchOptions = new SearchOptions()
-                .setFilter("id eq '" + productId + "'")
+                .setFilter("product_id eq '" + productId + "'")
                 .setTop(1);
             
             Iterable<SearchResult> searchResults = 
                 searchClient.search(productId, searchOptions, null);
             
             for (SearchResult result : searchResults) {
-                // Get the document as a Map for easier handling
-                @SuppressWarnings("unchecked")
-                Map<String, Object> document = (Map<String, Object>) result.getDocument(Map.class);
-                return mapDocumentToProduct(document);
+                return documentMappingService.mapSearchResultToProduct(result);
             }
         } catch (Exception e) {
             // Log the exception
@@ -69,70 +78,6 @@ public class ProductService {
         return null;
     }
     
-    /**
-     * Maps a document Map to a Product object
-     * 
-     * @param document The search document from Azure AI Search as a Map
-     * @return Product object
-     */
-    private Product mapDocumentToProduct(Map<String, Object> document) {
-        Product product = new Product();
-        
-        product.setId((String) document.get("id"));
-        product.setName((String) document.get("name"));
-        product.setDescription((String) document.get("description"));
-        product.setBrand((String) document.get("brand"));
-        product.setCategory((String) document.get("category"));
-        
-        // Handle price conversion
-        Object priceObj = document.get("price");
-        if (priceObj instanceof Number) {
-            product.setPrice(new BigDecimal(priceObj.toString()));
-        }
-        
-        product.setCurrency((String) document.get("currency"));
-        product.setSku((String) document.get("sku"));
-        product.setImage((String) document.get("image"));
-        
-        // Handle tags array
-        Object tagsObj = document.get("tags");
-        if (tagsObj instanceof List) {
-            @SuppressWarnings("unchecked")
-            List<String> tags = (List<String>) tagsObj;
-            product.setTags(tags);
-        }
-        
-        Object inStockObj = document.get("inStock");
-        if (inStockObj instanceof Boolean) {
-            product.setInStock((Boolean) inStockObj);
-        }
-        
-        Object stockQuantityObj = document.get("stockQuantity");
-        if (stockQuantityObj instanceof Number) {
-            product.setStockQuantity(((Number) stockQuantityObj).intValue());
-        }
-        
-        product.setManufacturer((String) document.get("manufacturer"));
-        product.setModel((String) document.get("model"));
-        
-        // Handle specifications array
-        Object specsObj = document.get("specifications");
-        if (specsObj instanceof List) {
-            @SuppressWarnings("unchecked")
-            List<String> specifications = (List<String>) specsObj;
-            product.setSpecifications(specifications);
-        }
-        
-        // Handle custom attributes
-        Object customAttrsObj = document.get("customAttributes");
-        if (customAttrsObj instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> customAttributes = (Map<String, Object>) customAttrsObj;
-            product.setCustomAttributes(customAttributes);
-        }
-        
-        return product;
-    }
     
     /**
      * Returns mock product data for demonstration
@@ -185,4 +130,106 @@ public class ProductService {
         
         return product;
     }
+    
+    /**
+     * Search for products using Azure AI Search
+     * 
+     * @param searchText The search text
+     * @param filters Optional filters to apply
+     * @param top Number of results to return
+     * @return List of Product objects
+     */
+    public List<Product> searchProducts(String searchText, String filters, int top) {
+        if (searchClient == null) {
+            System.err.println("Azure Search client is not configured");
+            return new ArrayList<>();
+        }
+        
+        try {
+            SearchOptions searchOptions = new SearchOptions()
+                .setTop(top);
+            
+            if (filters != null && !filters.trim().isEmpty()) {
+                searchOptions.setFilter(filters);
+            }
+            
+            Iterable<SearchResult> searchResults = 
+                searchClient.search(searchText, searchOptions, null);
+            
+            return documentMappingService.mapSearchResultsToProducts(searchResults);
+            
+        } catch (Exception e) {
+            System.err.println("Error searching for products: " + e.getMessage());
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * Search for products by category
+     * 
+     * @param category The category to search for
+     * @param top Number of results to return
+     * @return List of Product objects
+     */
+    public List<Product> searchProductsByCategory(String category, int top) {
+        String filter = "category eq '" + category + "'";
+        return searchProducts("*", filter, top);
+    }
+    
+    /**
+     * Search for products by brand
+     * 
+     * @param brand The brand to search for
+     * @param top Number of results to return
+     * @return List of Product objects
+     */
+    public List<Product> searchProductsByBrand(String brand, int top) {
+        String filter = "brand eq '" + brand + "'";
+        return searchProducts("*", filter, top);
+    }
+    
+    /**
+     * Search for products in price range
+     * 
+     * @param minPrice Minimum price
+     * @param maxPrice Maximum price
+     * @param top Number of results to return
+     * @return List of Product objects
+     */
+    public List<Product> searchProductsByPriceRange(double minPrice, double maxPrice, int top) {
+        String filter = "price ge " + minPrice + " and price le " + maxPrice;
+        return searchProducts("*", filter, top);
+    }
+    
+    /**
+     * Upload products to Azure AI Search
+     * Note: This is a placeholder implementation
+     * 
+     * @param products List of products to upload
+     * @return true if successful, false otherwise
+     */
+    public boolean uploadProductsToSearch(List<Product> products) {
+        if (searchClient == null) {
+            System.err.println("Azure Search client is not configured");
+            return false;
+        }
+        
+        try {
+            // TODO: Implement Azure Search upload functionality
+            // For now, just log the products that would be uploaded
+            System.out.println("Would upload " + products.size() + " products to Azure AI Search");
+            for (Product product : products) {
+                System.out.println("Product: " + product.getName() + " (ID: " + product.getId() + ")");
+            }
+            
+            return true;
+            
+        } catch (Exception e) {
+            System.err.println("Error uploading products to Azure AI Search: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
 }

@@ -1,12 +1,20 @@
 package com.example.productservice.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Product {
     
     @JsonProperty("@context")
@@ -14,19 +22,31 @@ public class Product {
     
     @JsonProperty("@type")
     private String type = "Product";
-    
+    @JsonProperty("product_id")
     private String id;
+    @JsonProperty("product_name")
     private String name;
+    @JsonProperty("sku_description")
     private String description;
     private String brand;
+    @JsonProperty("category_name")
     private String category;
     private BigDecimal price;
     private String currency;
+    @JsonProperty("sku_id")
     private String sku;
     private String image;
     private List<String> tags;
+    
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private LocalDateTime createdAt;
+    
+    @JsonSerialize(using = LocalDateTimeSerializer.class)
+    @JsonDeserialize(using = LocalDateTimeDeserializer.class)
     private LocalDateTime updatedAt;
+    
+    @JsonProperty("inStock")
     private boolean inStock;
     private int stockQuantity;
     private String manufacturer;
@@ -34,6 +54,7 @@ public class Product {
     private List<String> specifications;
     
     // Custom attributes - flexible key-value pairs for additional product data
+    @JsonProperty("customAttributes")
     private Map<String, Object> customAttributes;
     
     // Default constructor

@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Debug Product Service",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5005,
+            "projectName": "product-service"
+        },
+        {
+            "type": "java",
+            "name": "Debug Product Service (Launch)",
+            "request": "launch",
+            "mainClass": "com.example.productservice.ProductServiceApplication",
+            "projectName": "product-service",
+            "args": "",
+            "vmArgs": "-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"
+        }
+    ]
+}
