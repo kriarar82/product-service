@@ -1,1 +1,33 @@
 target/
+
+# Environment files with sensitive data
+.env
+.env.local
+.env.production
+.env.staging
+.env.development
+production.env
+staging.env
+development.env
+
+# Logs
+logs/
+*.log
+
+# Service PID files
+.service.pid
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
